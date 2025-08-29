@@ -1,6 +1,3 @@
-### Dev version in /home/kevhu/scripts/20201014mouseAaConversion.R
-### note some functions may be depreciated, or improved for final version
-
 ### required libraries and tables
 
 library(liftOver)
@@ -11,6 +8,8 @@ library(msa)
 
 data("BLOSUM100")
 
+
+### custom files loaded provided in code ocean
 h38toMm10Chain <- import.chain("/mnt/DATA5/tmp/kev/tmpDbs/ucscChainFiles/hg38ToMm10.over.chain")
 
 hg38biomartTable <- read.table("/home/kevhu/data/20201020hg38KnownCanbiomartQuery.txt", header = TRUE,

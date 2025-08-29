@@ -9,6 +9,9 @@ source("hotspotConversionFunctions.R")
 
 library(stringr)
 
+### custom files should be in code ocean
+
+
 hg19toHg38Chain <- import.chain("/mnt/DATA5/tmp/kev/tmpDbs/ucscChainFiles/hg19ToHg38.over.chain")
 
 h38toMm10Chain <- import.chain("/mnt/DATA5/tmp/kev/tmpDbs/ucscChainFiles/hg38ToMm10.over.chain")
@@ -23,8 +26,6 @@ mm10biomartTable <- read.table("/home/kevhu/data/20210203Mm10KnownCanbiomartQuer
 geneNameDf <- read.table("/home/kevhu/data/20230315geneNameBiomart.txt", header = TRUE,
                          stringsAsFactors = FALSE, sep = "\t")
 
-# hg38Peptide <- read.table("/home/kevhu/data/20201030proteinHg.txt",  header = TRUE,
-#                           stringsAsFactors = FALSE, sep = "\t")
 
 hg38Peptide <- read.table("/mnt/DATA5/tmp/kev/misc/20230301allPeptideQuery.txt",  header = TRUE,
                           stringsAsFactors = FALSE, sep = "\t")
@@ -60,18 +61,13 @@ colnames(hotspotDf) <- c("Gene", "Aa", "Position")
 hotspotDf <- data.frame(hotspotDf, stringsAsFactors = FALSE)
 
 
-hotspotDf <- hotspotDf[-which(hotspotDf == "GNAS"),] # different transcript ID
-# hotspotDf <- hotspotDf[-which(hotspotDf == "GNA11"),]
-hotspotDf <- hotspotDf[-which(hotspotDf == "GNAQ"),] # the name searching method is off -----------------------fixed
-hotspotDf <- hotspotDf[-which(hotspotDf == "H3F3A"),] # Lower case is mouse name H3F3A, hg38 name is H3-3A
-hotspotDf <- hotspotDf[-which(hotspotDf == "DNMT3A"),] # not canonical isoform? - liftOver empty
-hotspotDf <- hotspotDf[-which(hotspotDf == "FOXL2"),] # msa error - no seq2 - missing mouse peptide
-hotspotDf <- hotspotDf[-which(hotspotDf == "HIST1H3B"),] # not the gene name
-
-### so to redesign portions. as mentioned before, first (1) the gene name change should be easy enough to implement
-### (2) fix other issues like msa matching and what-not (3) the wrong transcript-isoform being useds
-### the last portion is the hardest to deal with since, I need to get all the different isoforms ... and figure out
-### an efficient way to query them - for the time being just skip ones like this
+### getting rid of some targets for testing
+hotspotDf <- hotspotDf[-which(hotspotDf == "GNAS"),] 
+hotspotDf <- hotspotDf[-which(hotspotDf == "GNAQ"),]
+hotspotDf <- hotspotDf[-which(hotspotDf == "H3F3A"),] 
+hotspotDf <- hotspotDf[-which(hotspotDf == "DNMT3A"),]
+hotspotDf <- hotspotDf[-which(hotspotDf == "FOXL2"),] 
+hotspotDf <- hotspotDf[-which(hotspotDf == "HIST1H3B"),] 
 
 
 
@@ -96,16 +92,12 @@ betaCateninHg <- getBM(mart = ensemblHg, attributes = c("external_gene_name", "e
 ### custom function for lollipop
 ### need another function to add features to the object
 
-### I need to redo the functions b/c for some odd reason uniprot canonical protein
-### doesn't include 
 
 drawProteins::get_features(paste(betaCateninHg$uniprot_gn_id[1:21], collapse = " ")) -> rel_json_hg
-# drawProteins::get_features(paste(betaCateninHg$uniprot_gn_id, collapse = " ")) -> rel_json_hg
 drawProteins::feature_to_dataframe(rel_json_hg) -> rel_data_hg
 draw_canvas(rel_data_hg) -> p
 p <- draw_chains(p, rel_data_hg)
 p <- draw_domains(p, rel_data_hg)
-# p <- draw_phospho(p, rel_data_hg)
 p <- draw_motif(p, rel_data_hg)
 p <- p + theme_bw(base_size = 20) + # white background
   theme(panel.grid.minor=element_blank(), 
@@ -186,10 +178,6 @@ unique(hotspotDf$Gene)
 
 length(unique(geneNameDf$external_gene_name))
 
-# hotspotPepQuery5k <- getBM(mart = ensemblHg, attributes = c("external_gene_name", "ensembl_transcript_id", "uniprot_gn_id",
-#                                                           "transcript_mane_select", "peptide"),
-#                          filters = "external_gene_name", values = unique(geneNameDf$external_gene_name)[1:500])
-
 
 tmpVector <- c(1:196)
 finalHotspotPepQuery <- NULL
@@ -224,24 +212,6 @@ write.table(finalHotspotPepQuery, "/mnt/DATA5/tmp/kev/misc/20230301allPeptideQue
 
 ### needed to do the same thing for mouse 
 
-# tmpVectorMm <- c(1:187)
-# finalHotspotPepQueryMm <- NULL
-# for (i in tmpVectorMm) {
-#   tmpStart <- (i - 1) * 100 + 1
-#   tmpEnd <- i * 100
-#   print(paste0(tmpStart, ":", tmpEnd))
-#   if (i == 187) {
-#     tmpQuery <- getBM(mart = ensemblMm, attributes = c("external_gene_name", "ensembl_transcript_id",
-#                                                        "uniprot_gn_id", "peptide", "ensembl_peptide_id"),
-#                       filters = "external_gene_name", values = unique(geneNameDf$mmusculus_homolog_associated_gene_name)[18600:18681])
-#     finalHotspotPepQueryMm <- rbind(finalHotspotPepQueryMm, tmpQuery)
-#   } else{
-#     tmpQuery <- getBM(mart = ensemblMm, attributes = c("external_gene_name", "ensembl_transcript_id",
-#                                                        "uniprot_gn_id", "peptide", "ensembl_peptide_id"),
-#                       filters = "external_gene_name", values = unique(geneNameDf$mmusculus_homolog_associated_gene_name)[tmpStart:tmpEnd])
-#     finalHotspotPepQueryMm <- rbind(finalHotspotPepQueryMm, tmpQuery)
-#   }
-# }
 allPossibleNames <- unique(c(unique(geneNameDf$mmusculus_homolog_associated_gene_name),  unique(geneNameDf$external_gene_name)))
 
 
@@ -323,39 +293,7 @@ annoTable2 <- read.table("/mnt/DATA5/tmp/kev/oncokbAnnoOut/mskTestGRCh38.maf", s
                          stringsAsFactors = FALSE, header = TRUE, fill = TRUE)
 
 
-### idea would 
-
-# egfrPositions <- annoTable2[which(annoTable2$Hugo_Symbol == "EGFR"), ]
-# egfrPositions <- egfrPositions[-grep("dup|del|ins", egfrPositions$cDNA_change), ]
-# egfrPositions <- egfrPositions[-grep("splic", egfrPositions$HGVSp_Short), ]
-# egfrPositions <- egfrPositions[which(egfrPositions$MUTATION_EFFECT %in% c("Gain-of-function", "Likely Gain-of-function")),]
-
-
-# oncokbPositions <- annoTable2
-# oncokbPositions <- oncokbPositions[-grep("dup|del|ins", oncokbPositions$cDNA_change), ]
-# oncokbPositions <- oncokbPositions[-grep("splic", oncokbPositions$HGVSp_Short), ]
-
 oncokbPositions <- annoTable2[which(annoTable2$Variant_Type == "SNP"),]
-
-
-
-### using all and then I will label end matrix with the mutation effect
-# oncokbPositions <- oncokbPositions[which(oncokbPositions$MUTATION_EFFECT %in% c("Gain-of-function", "Likely Gain-of-function")),]
-
-
-# origAa <- NULL
-# for (i in 1:nrow(egfrPositions)) {
-#   tmpRes <- substr(egfrPositions$HGVSp_Short[i], 3, 3)
-#   origAa  <- c(origAa , tmpRes)
-# }
-# origAa
-# 
-# egfrPositions$AminoAcid <- origAa
-# uniquePositions <- unique(egfrPositions$Protein_position)
-# egfrPositionsRed <- egfrPositions[-which(duplicated(egfrPositions$Protein_position)),]
-# 
-# hotspotDf <- data.frame("Gene" = egfrPositionsRed$Hugo_Symbol,
-#                              "Aa" = egfrPositionsRed$AminoAcid, "Position" = egfrPositionsRed$Protein_position)
 
 
 origAa <- NULL
@@ -369,26 +307,6 @@ oncokbPositions$AminoAcid <- origAa
 oncokbPositionsHg38 <- oncokbPositions[which(oncokbPositions$NCBI_Build == "GRCh38"),]
 oncokbPositionsHg19 <- oncokbPositions[which(oncokbPositions$NCBI_Build == "GRCh37"),]
 colnames(oncokbPositionsHg19)[c(1, 5:8)] <- c("gene", "chrom", "start", "end", "strand")
-
-### redo later
-# oncokbPositionsLift <- NULL
-# for (j in 1:nrow(oncokbPositionsHg19)) {
-#   print(j)
-#   tmpLiftOverRes <- cdsLiftOver(oncokbPositionsHg19[j, ],
-#                                 chainFile = hg19toHg38Chain)
-# 
-#   if (is.null(tmpLiftOverRes)) {
-#     tmpDf <- data.frame("chrom" = NA,
-#                         "start" = NA,
-#                         "end" = NA,
-#                         "strand" = NA,
-#                         "gene" = oncokbPositionsHg19$gene[j])
-#     oncokbPositionsLift <- rbind(oncokbPositionsLift,tmpDf)
-#     next()
-#   }
-# 
-#   oncokbPositionsLift <- rbind(oncokbPositionsLift,tmpLiftOverRes)
-# }
 
 library(foreach)
 library(doParallel)
@@ -452,78 +370,6 @@ hotspotDf <- hotspotDf[hotspotDf$OncokbListed == "True", ]
 rownames(hotspotDf) <- NULL
 
 table(hotspotDf$Consequence)
-
-
-i <- 20
-### single, non parallel
-# resTbl <- NULL
-# for (i in 1:nrow(hotspotDf)) {
-#   print(i)
-#   testAaConversion <- tryCatch(aaToGenome(gene = hotspotDf$Gene[i],
-#                                           position = as.numeric(hotspotDf$Position[i])),
-#                                error = function(x) return(NULL))
-#   #print(testAaConversion)
-#   #if (testAaConversion == "empty") {
-#   #  next()
-#   #}
-#   if (is.null(testAaConversion)) {
-#     next()
-#   }
-#   
-#   liftOverOut <- NULL
-#   for (j in 1:nrow(testAaConversion)) {
-#     print(j)
-#     tmpLiftOverRes <- cdsLiftOver(testAaConversion[j, ],
-#                                   chainFile = h38toMm10Chain)
-#     
-#     if (is.null(tmpLiftOverRes)) {
-#       next()
-#     }
-#     tmpLiftOverRes$ensembl <- testAaConversion$ensembl[j]
-#     tmpLiftOverRes$aa <- hotspotDf$Aa[i]
-#     liftOverOut <- rbind(liftOverOut,tmpLiftOverRes)
-#   }
-#   
-#   # liftOverOut$ensembl <- testAaConversion$ensembl
-#   # liftOverOut$aa <- hotspotDf$Aa[i]
-#   #print(liftOverOut)
-#   if (is.null(liftOverOut)) {
-#     next()
-#   }
-#   
-#   if(any(liftOverOut$strand == "+" | liftOverOut$strand == "-")){
-#     liftOverOut$strand <- str_replace_all(liftOverOut$strand, "\\+", "1")
-#     liftOverOut$strand <- str_replace_all(liftOverOut$strand, "\\-", "-1")
-#     liftOverOut$strand <- as.numeric(liftOverOut$strand)
-#   }
-#   
-#   
-#   
-#   ### when this is made into a function or a wrapper
-#   ### make sure I have a variable for MANE. if true reduce set
-#   mane_filt <- geneNameDf$transcript_mane_select[match(unique(liftOverOut$ensembl), geneNameDf$ensembl_transcript_id)]
-#   if(grepl("NM", paste0(mane_filt, collapse = "|"))){
-#     mane_transcript <- unique(liftOverOut$ensembl)[grep("NM", mane_filt)]
-#     liftOverOut <- liftOverOut[which(liftOverOut$ensembl == mane_transcript),]
-#     liftOverOut$homo_pep <- geneNameDf$mmusculus_homolog_ensembl_peptide[match(liftOverOut$ensembl,
-#                                                                                geneNameDf$ensembl_transcript_id)]
-#   } else{
-#     liftOverOut$homo_pep <- ""
-#   }
-#   
-#   ### iterating over all if MANE is not selected
-#   for (y in 1:nrow(liftOverOut)) {
-#     print(y)
-#     checkInput <- list(hotspotDf$Gene[i],
-#                        as.numeric(hotspotDf$Position[i]) ,
-#                        "liftOverOut" = liftOverOut[y,],
-#                        hotspotDf$MutEff[i])
-#     #print(checkInput)
-#     conversionCheckOut <- aaConversionCheck(checkInput)
-#     #print(conversionCheckOut)
-#     resTbl <- rbind(resTbl, conversionCheckOut)
-#   }
-# }
 
 
 ### below  is to look at all msk mutations, not just what was listed as recurrent on oncokb
@@ -903,21 +749,9 @@ allResTbl <- rbind(resTbl, resTbl2, resTbl3, resTbl4)
 
 ### combine all 4 tables, each was about 131 gbs so needed to do them in parts
 
-### make the graph before of length by msa score - reduce it by unique coordinates
-
-### then can make the draw proteins graph - I think I might need my own functions 
-### because I want to draw lollipops based on pop count
-
-### filter by MANE annotation, then for each unique mouse transcript create graph
-### filtered out b/c old version is all vs current version using only mutations with likely gain/loss of function
-
-# rownames(resTbl) <- NULL
-# resTblMane <- resTbl[-which(resTbl$annoMane == ""),]
 rownames(allResTbl) <- NULL
 resTblMane <- allResTbl[-which(allResTbl$annoMane == ""),]
 rownames(resTblMane) <- NULL
-# resTblMane <- rbind(resTblMane, resTblMane[61, ])
-# resTblMane$check[66] <- "no"
 resTblMane$check <- factor(resTblMane$check, levels = c("yes", "no"))
 ggplot(resTblMane, aes(x = ENSID, y = conservationScore, fill = check)) + geom_boxplot() +
   geom_point(aes(fill = check), position = position_jitterdodge(), alpha = 1) +
@@ -928,20 +762,6 @@ ggplot(resTblMane, aes(x = ENSID, y = conservationScore, fill = check)) + geom_b
         panel.grid.minor = element_blank(),
         panel.border = element_blank(),
         panel.background = element_blank()) 
-
-# resTblMane <- resTbl[-which(resTbl$annoMane == ""),]
-# resTblMane$check <- factor(resTblMane$check, levels = c("yes", "no"))
-# ggplot(resTblMane, aes(x = ENSID, y = conservationScore, fill = check)) + geom_boxplot() + 
-#   geom_point(aes(fill = check), position = position_jitterdodge(), alpha = 1) + 
-#   scale_fill_manual(values = c("darkgreen", "darkblue")) + ylab("MSA score (BLOSUM 100)") + 
-#   xlab("Ensembl ID")
-
-
-### second lollipop graphs
-
-
-### lollipop plots will have to graph multiple graphs differently because y axis counts number of occurence
-### the height should be 5 if count not available, but get rid of side labels
 
 ### need to create table of color palette for a domains
 
@@ -1059,7 +879,6 @@ rel_data_hg_filt$begin <- 1
 annoTable2 <- read.table("/mnt/DATA5/tmp/kev/oncokbAnnoOut/mskTestGRCh38.maf", sep = "\t",
                          stringsAsFactors = FALSE, header = TRUE, fill = TRUE)
 
-# resTblMane_filt <- resTblMane[which(resTblMane$check == "yes"),]
 resTblMane_filt <- resTblMane
 varCountTbl <- egfrPositions[,c("Hugo_Symbol", "Protein_position")]
 
@@ -1206,19 +1025,6 @@ for (i in 1:length(hotspotCountTable_mm)) {
 colVector <- ifelse(resTblMane_filt_mm$check[match(names(hotspotCountTable_mm), resTblMane_filt_mm$ConvertedPosition)] == "yes", "darkgreen", "darkblue")
 mmLolli3 <- draw_lolli(rel_data_mm_filt, point_color = colVector)
 
-### create the 4 individual plots + boxplot for the figure, on the figure have proportions that matched vs unmatched
-### I need to standardize colors .... for now I'll do it in illustrator
-
-### this type of mapping solves a majority of the process ..... could always see if highest number of maps is always the homologue?
-### for egfr: use mane transcript, then homologue peptide into homologue transcript id
-# getBM(mart = ensemblHg, attributes = c("external_gene_name", "ensembl_transcript_id",
-#                                        "mmusculus_homolog_ensembl_peptide"),
-#       filters = "ensembl_transcript_id", values = "ENST00000275493")
-# 
-# 
-# getBM(mart = ensemblMm, attributes = c("external_gene_name", "ensembl_transcript_id",
-#                                        "ensembl_peptide_id"),
-#       filters = "ensembl_peptide_id", values = "ENSMUSP00000020329")
 
 tsgOncoList <- readxl::read_xlsx("/mnt/DATA5/tmp/kev/misc/volgelstein2012oncoTsgList.xlsx", sheet = 6, skip = 1)
 tsgList <- tsgOncoList$`Gene Symbol`[which(tsgOncoList$`Classification*` == "TSG")]
@@ -1305,12 +1111,7 @@ tmpGraphTbl2$dummyDesig <- str_replace_all(tmpGraphTbl2$dummyDesig, "onco", "0")
 tmpGraphTbl2$dummyDesig <- str_replace_all(tmpGraphTbl2$dummyDesig, "tsg", "1")
 tmpGraphTbl2$dummyDesig <- factor(tmpGraphTbl2$dummyDesig)
 
-### second cutoff was needs matching and also greater than certain conservation score - modified z score cause of skewness
-# tmpGraphTbl2$check2 <- ifelse(tmpGraphTbl2$conservationScore > 15.8 & tmpGraphTbl2$check == "yes", "yes", "no")
-
 tmpGraphTbl2$check2 <- tmpGraphTbl2$check
-
-### swapped baseline from no, so OR increases make more sense 
 
 tmpGraphTbl2$check <- factor(tmpGraphTbl2$check, levels = c("no", "yes"))
 tmpGraphTbl2$check2 <- factor(tmpGraphTbl2$check2, levels = c("no", "yes"))
@@ -1325,7 +1126,6 @@ for (i in seq_along(oncokbPositionsRed$string)) {
 
 tmpGraphTbl2$count <- oncokbPositionsRed$count[match(tmpGraphTbl2$Hotspot, oncokbPositionsRed$string)]
 
-# glmRes <- glm(data = tmpGraphTbl2, formula = check ~ conservationScore + dummyMutEff + dummyDomain + dummyDesig, family = binomial(link = "logit"))
 glmRes <- glm(data = tmpGraphTbl2, formula = check2 ~ conservationScore + dummyMutEff + dummyDesig, family = binomial(link = "logit"))
 glmRes <- glm(data = tmpGraphTbl2, formula = check ~ conservationScore + dummyDesig, family = binomial(link = "logit"))
 glmRes <- glm(data = tmpGraphTbl2, formula = check ~ dummyDesig, family = binomial(link = "logit"))
@@ -1342,18 +1142,8 @@ library(forestmodel)
 # pdf(file = "/mnt/DATA5/tmp/kev/misc/20231205forestPlot.pdf", width = 12, height = 8, useDingbats = FALSE)
 forest_model(glmResRefit, exponentiate = TRUE)
 dev.off()
-### interesting results from looking at both p-values and effect size for whether hotspots converted properly
-### out of all the variables, how well the local area is conserved increases the likely hood of conversion the most i.e 4.36
-### the next highest surprisingly is if the the mutation is gain of function with 2.78
-### interpreting the confidence intervals showing true mean of both conservation score and being a gain of function mutation
-### does always increase the chance of whether the hotspot is conserved between the two species
-### at least more likely than loss of function which is interesting. both likely and loss of function 95% CI range
-### includes both >1 and < 1
 
 
-### now for the figures, probably just boxplots dividing data by type of mutations using conservation score as boxplot
-### too many dots for jitter, use fill by check show diff
-### only remaking three to reorder check, not wanting to change reference for multiple regression previously done
 tmpGraphTbl3 <- tmpGraphTbl2
 tmpGraphTbl3$check <- factor(tmpGraphTbl3$check, levels = c("yes", "no"))
 
@@ -1370,13 +1160,6 @@ ggboxplot(tmpGraphTbl3, y = "conservationScore", x = "domainMatch", outlier.shap
 ggboxplot(tmpGraphTbl3, y = "conservationScore", x = "geneDesig", outlier.shape=NA, fill = "check") +
   scale_fill_manual(values=c("#8B0000", "#00008B")) + 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 5))
-
-
-# load("/mnt/DATA5/tmp/kev/misc/20230402greedyHotspot.RData")
-# save.image(file = "/mnt/DATA5/tmp/kev/misc/20230402greedyHotspot.RData")
-### I think boxplots splitting it by function for regular graph
-### split it by oncogenes/tsg and whether it lies in a domain in supplementary
-### have p-values for these too
 
 
 
@@ -1451,9 +1234,7 @@ notchLolli
 
 
 ### drawing newer plots with conservation score (y-axis) for PIK3CA - 
-### need to have distinguish between annotations  somehow
-### draw it on the human protein
-# df <- rel_data_hg_filt2
+
 draw_lolliV2 <- function(df, outline_chain = "black", fill_chain = "grey", label_chains = TRUE,
                          label_size_chain = 4, point_color = NULL, label_domains = FALSE){
   ### point color is vector with legnth of number of points - based on matching
